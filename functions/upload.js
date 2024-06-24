@@ -1,4 +1,5 @@
 export async function onRequestPost(context) {
+    console.log("onRequestPost");
     const { request, env } = context;
     const url = new URL(request.url);
     const apikey = env.ModerateContentApiKey
@@ -26,6 +27,7 @@ export async function onRequestPost(context) {
     const formattedDate = new Intl.DateTimeFormat('zh-CN', options).format(timedata);
 
     if (!env.IMG) {
+
         return res_img;
     } else {
         // const newReq = res_img.clone();
