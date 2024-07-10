@@ -3,12 +3,22 @@ $.fn.fileinput.defaults.language = 'zh';
 let $smfile = $("#file");
 $smfile.fileinput({
     // theme: 'fas',
-    uploadUrl: BASE_URL + '/weixinyanxuan',
+    uploadUrl: BASE_URL + '/upload',
+    uploadExtraData: function (previewId, index) {
+        var dataArray = $("#upload_option").serializeArray(),
+            len = dataArray.length,
+            dataObj = {};
+
+        for (let i = 0; i < len; i++) {
+            dataObj[dataArray[i].name] = dataArray[i].value;
+        }
+        return dataObj;
+    },
     // allowedFileExtensions: ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp'],
-    // allowedFileExtensions: ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'mp4', 'mov', 'avi'],
+    allowedFileExtensions: ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'mp4', 'mov', 'avi'],
     overwriteInitial: false,
     previewFileType: "image",
-    // maxFileSize: '512000',
+    maxFileSize: '5120',
     maxFileCount: '100',
     maxAjaxThreads: 2,
     showClose: false,
@@ -21,15 +31,14 @@ $smfile.fileinput({
     },
     browseClass: "btn btn-success",
     // msgPlaceholder: "选择文件",
-    browseLabel: "选择要上传的文件",
+    browseLabel: "选择图片或视频",
     browseIcon: "<i class=\"fas fa-images\"></i> ",
     removeClass: "btn btn-danger",
     // removeLabel: "清除",
     uploadClass: "btn btn-info",
     // uploadLabel: "上传",
     dropZoneTitle: "拖拽文件到这里<br>或将屏幕截图复制并粘贴到此处<br>支持多文件同时上传…",
-    // showPreview: false
-    // showPreview: false,
+    //showPreview: false
 })
 
 function hasHtmlTags(string) {
@@ -49,10 +58,6 @@ $smfile.on('fileselect', function (event, numFiles, label) {
         }
     });
 });
-
-
-
-
 
 var clip = function (el) {
     var range = document.createRange();
@@ -208,25 +213,28 @@ function render_uploaded() {
     uploaded_files.forEach(function (x) {
         var resp = x.resp;
         var name = resp.data.url.split('/').pop();
-        // console.log(name);
-        // const _URL = "https://community.codewave.163.com/upload/app/"
-        // const WPRAW = "https://images.weserv.nl/?url=https://telegra.ph"
-        // const PhRAW = "https://telegra.ph"
-        var url = resp.data.url
-        var url1 = resp.data.url1
-        $('#imagedetail').append(formatHtml({ url: url, code: url, codewave: url1 }));
-        $('#htmlcode').append(formatHtml({ url: url, code: '<img src="' + url + '" />', codewave: '<img src="' + url1 + '" />' }));
-        $('#bbcode').append(formatHtml({ url: url, code: '[img]' + url + '[/img]', codewave: '[img]' + url1 + '[/img]' }));
-        $('#markdown').append(formatHtml({ url: url, code: '![' + name + '](' + url + ')', codewave: '![' + name + '](' + url1 + ')' }));
+
+        const WPRAW = ""  //使用wordpress.com加速
+        const PhRAW = ""   //原地址
+        const PROXYURL = ""  //自定义加速域名 默认是使用cloudflare
+        const BASE_PROXYURL = PROXYURL ? PROXYURL : BASE_URL;
+
+        var url = resp.data.thumb == null ? BASE_PROXYURL + resp.data.url : BASE_PROXYURL + resp.data.thumb.url;
+        var wpurl = resp.data.thumb == null ? WPRAW + resp.data.url : WPRAW + resp.data.thumb.url;
+        var RAW = resp.data.thumb == null ? PhRAW + resp.data.url : PhRAW + resp.data.thumb.url;
+        $('#imagedetail').append(formatHtml({ url: url, code: url, wp: wpurl, raw: RAW }));
+        $('#htmlcode').append(formatHtml({ url: url, code: '<img src="' + url + '" />', wp: '<img src="' + wpurl + '" />', raw: '<img src="' + RAW + '" />' }));
+        $('#bbcode').append(formatHtml({ url: url, code: '[img]' + url + '[/img]', wp: '[img]' + wpurl + '[/img]' , raw: '[img]' + RAW + '[/img]' }));
+        $('#markdown').append(formatHtml({ url: url, code: '![' + name + '](' + url + ')', wp: '![' + name + '](' + wpurl + ')', raw: '![' + name + '](' + RAW + ')' }));
     });
 }
 
 
-$smfile.on('fileuploaded', async function (event, data, previewId, index) {
+$smfile.on('fileuploaded', function (event, data, previewId, index) {
     var form = data.form, files = data.files, extra = data.extra, response = data.response, reader = data.reader;
-    // console.log(response);
+    // console.log(files);
     if (response.error === undefined) {
-        response = { data: { url: response.url, url1: response.raw } }
+        response = { data: { url: response[0].src } }
         // console.log(response);
         uploaded_files.push({ index: index, resp: response });
         render_uploaded();
@@ -327,6 +335,7 @@ document.getElementById("lightbox-overlay").addEventListener("click", function (
 });
 
 
+
 // 发起 AJAX 请求
 $.ajax({
     url: '/total',
@@ -347,8 +356,6 @@ $.ajax({
     url: '/ip',
     method: 'GET',
     success: function (data) {
-        // console.log(data);
-        // 将返回的数据渲染到指定的 <span> 元素中
         $('#ipinfo').text(data.ip);
     },
     error: function () {
@@ -356,6 +363,8 @@ $.ajax({
         console.error('请求失败');
     }
 });
+
+
 
 var currentTab = 'imagedetail';
 
