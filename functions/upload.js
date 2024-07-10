@@ -2,7 +2,7 @@ export async function onRequestPost(context) {
     console.log("onRequestPost");
     const { request, env } = context;
     const url = new URL(request.url);
-    const apikey = env.ModerateContentApiKey
+    const apikey = env.ModerateContentApiKey 
     const ModerateContentUrl = apikey ? `https://api.moderatecontent.com/moderate/?key=${apikey}&` : ""
     const ratingApi = env.RATINGAPI ? `${env.RATINGAPI}?` : ModerateContentUrl;
     const clientIP = request.headers.get("x-forwarded-for") || request.headers.get("clientIP");
@@ -34,7 +34,8 @@ export async function onRequestPost(context) {
         const responseData = await res_img.json();
         try {
             const rating = ratingApi ? await getRating(ratingApi, responseData[0].src) : { rating: 0 };
-            await insertImageData(env.IMG, responseData[0].src, Referer, clientIP, rating.rating, formattedDate);
+            const rating_index = rating.rating ? rating.rating : rating.rating_index
+            await insertImageData(env.IMG, responseData[0].src, Referer, clientIP, rating_index, formattedDate);
         } catch (e) {
             console.log(e);
             await insertImageData(env.IMG, responseData[0].src, Referer, clientIP, 5, formattedDate);
@@ -49,6 +50,7 @@ export async function onRequestPost(context) {
 
 async function getRating(ratingApi, src) {
     const res = await fetch(`${ratingApi}url=https://telegra.ph${src}`);
+    // console.log(await res.json());
     return await res.json();
 }
 
